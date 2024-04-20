@@ -4,11 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - op-migrate
 
 jobs:
   release:
     name: Release
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         build:
@@ -16,16 +18,9 @@ jobs:
             file: ./ops/docker/Dockerfile.packages
             target: data-transport-layer
             args: NODE_OPTIONS=--max-old-space-size=6144
-          - name: message-relayer
-            file: ./ops/docker/Dockerfile.packages
-            target: message-relayer
-            args: NODE_OPTIONS=--max-old-space-size=6144
           - name: l2geth
             file: ./ops/docker/Dockerfile.geth
             target: ''
-            args: ''
-          - name: batch-submitter
-            file: ./ops/docker/Dockerfile.batch-submitter-service
             args: ''
     steps:
       - name: Checkout Code
