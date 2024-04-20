@@ -1,10 +1,10 @@
 /* Imports: External */
-import { fromHexString, sleep } from '@eth-optimism/core-utils'
-import { BaseService, Metrics } from '@eth-optimism/common-ts'
+import { fromHexString, getChainId, sleep } from '@eth-optimism/core-utils'
+import { BaseService, LegacyMetrics } from '@eth-optimism/common-ts'
 import { TypedEvent } from '@eth-optimism/contracts/dist/types/common'
 import { BaseProvider, StaticJsonRpcProvider } from '@ethersproject/providers'
 import { LevelUp } from 'levelup'
-import { constants } from 'ethers'
+import { BigNumber, constants } from 'ethers'
 import { Gauge, Counter } from 'prom-client'
 
 /* Imports: Internal */
@@ -31,7 +31,7 @@ interface L1IngestionMetrics {
 const registerMetrics = ({
   client,
   registry,
-}: Metrics): L1IngestionMetrics => ({
+}: LegacyMetrics): L1IngestionMetrics => ({
   highestSyncedL1Block: new client.Gauge({
     name: 'data_transport_layer_highest_synced_l1_block',
     help: 'Highest Synced L1 Block Number',
@@ -52,7 +52,7 @@ const registerMetrics = ({
 export interface L1IngestionServiceOptions
   extends L1DataTransportServiceOptions {
   db: LevelUp
-  metrics: Metrics
+  metrics: LegacyMetrics
 }
 
 const optionSettings = {
@@ -100,6 +100,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     contracts: OptimismContracts
     l1RpcProvider: BaseProvider
     startingL1BlockNumber: number
+    addressCache: {
+      [name: string]: string
+    }
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -118,6 +121,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       })
     } else {
       this.state.l1RpcProvider = this.options.l1RpcProvider
+    }
+
+    // Make sure that the given provider is connected to L1 and not L2
+    const connectedChainId = await getChainId(this.state.l1RpcProvider)
+    if (connectedChainId === this.options.l2ChainId) {
+      throw new Error(
+        `Given L1 RPC provider is actually an L2 provider, please provide an L1 provider`
+      )
     }
 
     this.logger.info('Using AddressManager', {
@@ -195,6 +206,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
+
+    // Initialize the address cache.
+    this.state.addressCache = {}
   }
 
   protected async _start(): Promise<void> {
@@ -208,10 +222,18 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           (await this.state.db.getHighestSyncedL1Block()) ||
           this.state.startingL1BlockNumber
         const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
-        const targetL1Block = Math.min(
+        let targetL1Block = Math.min(
           highestSyncedL1Block + this.options.logsPerPollingInterval,
           currentL1Block - this.options.confirmations
         )
+
+        // Don't sync beyond the shutoff block!
+        if (Number.isInteger(this.options.l1SyncShutoffBlock)) {
+          targetL1Block = Math.min(
+            targetL1Block,
+            this.options.l1SyncShutoffBlock
+          )
+        }
 
         // We're already at the head, so no point in attempting to sync.
         if (highestSyncedL1Block === targetL1Block) {
@@ -224,16 +246,44 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           targetL1Block,
         })
 
-        // I prefer to do this in serial to avoid non-determinism. We could have a discussion about
-        // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
-        // really, really slow for all event types.
-        await this._syncEvents(
-          'CanonicalTransactionChain',
-          'TransactionEnqueued',
-          highestSyncedL1Block,
-          targetL1Block,
-          handleEventsTransactionEnqueued
-        )
+        // We always try loading the deposit shutoff block in every loop! Less efficient but will
+        // guarantee that we don't miss the shutoff block being set and that we can automatically
+        // recover if the shutoff block is set and then unset.
+        const depositShutoffBlock = BigNumber.from(
+          await this.state.contracts.Lib_AddressManager.getAddress(
+            'DTL_SHUTOFF_BLOCK'
+          )
+        ).toNumber()
+
+        // If the deposit shutoff block is set, then we should stop syncing deposits at that block.
+        let depositTargetL1Block = targetL1Block
+        if (depositShutoffBlock > 0) {
+          this.logger.info(`Deposit shutoff active`, {
+            targetL1Block,
+            depositShutoffBlock,
+          })
+          depositTargetL1Block = Math.min(
+            depositTargetL1Block,
+            depositShutoffBlock
+          )
+        }
+
+        // We should not sync TransactionEnqueued events beyond the deposit shutoff block.
+        if (depositTargetL1Block >= highestSyncedL1Block) {
+          await this._syncEvents(
+            'CanonicalTransactionChain',
+            'TransactionEnqueued',
+            highestSyncedL1Block,
+            depositTargetL1Block,
+            handleEventsTransactionEnqueued
+          )
+        } else {
+          this.logger.info('Deposit shutoff reached', {
+            depositTargetL1Block,
+            highestSyncedL1Block,
+            depositShutoffBlock,
+          })
+        }
 
         await this._syncEvents(
           'CanonicalTransactionChain',
@@ -271,6 +321,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           const handlers = {
             SequencerBatchAppended:
               this.state.db.getLatestTransactionBatch.bind(this.state.db),
+            SequencerBatchAppendedTransaction:
+              this.state.db.getLatestTransaction.bind(this.state.db),
             StateBatchAppended: this.state.db.getLatestStateRootBatch.bind(
               this.state.db
             ),
@@ -370,27 +422,67 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       toBlock: number
     }[] = []
 
-    // Add a range for each address change.
     let l1BlockRangeStart = fromL1Block
-    for (const addressSetEvent of addressSetEvents) {
+
+    // Addresses on mainnet do NOT change. We can therefore skip costly checks related to cases
+    // where addresses do change (mainly on testnets).
+    if (this.options.l2ChainId === 10) {
       eventRanges.push({
-        address: await this._getContractAddressAtBlock(
-          contractName,
-          addressSetEvent.blockNumber
-        ),
+        address: await this._getFixedAddress(contractName),
         fromBlock: l1BlockRangeStart,
-        toBlock: addressSetEvent.blockNumber,
+        toBlock: toL1Block,
       })
+    } else if (this.options.l2ChainId === 420) {
+      if (
+        l1BlockRangeStart < 7260849 &&
+        contractName === 'StateCommitmentChain'
+      ) {
+        if (toL1Block < 7260849) {
+          eventRanges.push({
+            address: '0x72281826e90dd8a65ab686ff254eb45be426dd22',
+            fromBlock: l1BlockRangeStart,
+            toBlock: toL1Block,
+          })
+        } else {
+          eventRanges.push({
+            address: '0x72281826e90dd8a65ab686ff254eb45be426dd22',
+            fromBlock: l1BlockRangeStart,
+            toBlock: 7260849,
+          })
+          eventRanges.push({
+            address: await this._getFixedAddress(contractName),
+            fromBlock: 7260849,
+            toBlock: toL1Block,
+          })
+        }
+      } else {
+        eventRanges.push({
+          address: await this._getFixedAddress(contractName),
+          fromBlock: l1BlockRangeStart,
+          toBlock: toL1Block,
+        })
+      }
+    } else {
+      // Addresses can change on non-mainnet deployments. If an address changes, we will
+      // potentially need to sync events from both the old address and the new address. We will
+      // add an entry here for each address change.
+      for (const addressSetEvent of addressSetEvents) {
+        eventRanges.push({
+          address: addressSetEvent.args._oldAddress,
+          fromBlock: l1BlockRangeStart,
+          toBlock: addressSetEvent.blockNumber,
+        })
 
-      l1BlockRangeStart = addressSetEvent.blockNumber
+        l1BlockRangeStart = addressSetEvent.blockNumber
+      }
+
+      // Add one more range to get us to the end of the user-provided block range.
+      eventRanges.push({
+        address: await this._getContractAddressAtBlock(contractName, toL1Block),
+        fromBlock: l1BlockRangeStart,
+        toBlock: toL1Block,
+      })
     }
-
-    // Add one more range to get us to the end of the user-provided block range.
-    eventRanges.push({
-      address: await this._getContractAddressAtBlock(contractName, toL1Block),
-      fromBlock: l1BlockRangeStart,
-      toBlock: toL1Block,
-    })
 
     for (const eventRange of eventRanges) {
       // Find all relevant events within the range.
@@ -455,14 +547,38 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
   }
 
+  /**
+   * Returns an address for a contract name whose address isn't expected to change.
+   *
+   * @param contractName Name of the contract to get an address for.
+   * @return Contract address.
+   */
+  private async _getFixedAddress(contractName: string): Promise<string> {
+    if (this.state.addressCache[contractName]) {
+      return this.state.addressCache[contractName]
+    }
+
+    const address =
+      this.state.contracts.Lib_AddressManager.getAddress(contractName)
+    this.state.addressCache[contractName] = address
+    return address
+  }
+
   private async _findStartingL1BlockNumber(): Promise<number> {
     const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
     const filter =
       this.state.contracts.Lib_AddressManager.filters.OwnershipTransferred()
 
-    for (let i = 0; i < currentL1Block; i += 2000) {
+    for (
+      let i = 0;
+      i < currentL1Block;
+      i += this.options.logsPerPollingInterval
+    ) {
       const start = i
-      const end = Math.min(i + 2000, currentL1Block)
+      const end = Math.min(
+        i + this.options.logsPerPollingInterval,
+        currentL1Block
+      )
       this.logger.info(`Searching for ${filter} from ${start} to ${end}`)
 
       const events = await this.state.contracts.Lib_AddressManager.queryFilter(

@@ -8,7 +8,7 @@ import {
   BatchType,
   SequencerBatch,
 } from '@eth-optimism/core-utils'
-import { SequencerBatchAppendedEvent } from '@eth-optimism/contracts/dist/types/CanonicalTransactionChain'
+import { SequencerBatchAppendedEvent } from '@eth-optimism/contracts/dist/types/contracts/L1/rollup/CanonicalTransactionChain'
 
 /* Imports: Internal */
 import { MissingElementError } from './errors'
@@ -206,7 +206,21 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
     }
 
-    await db.putTransactionBatchEntries([entry.transactionBatchEntry])
+    // Same consistency checks but for transaction entries.
+    if (
+      entry.transactionEntries.length > 0 &&
+      entry.transactionEntries[0].index > 0
+    ) {
+      const prevTransactionEntry = await db.getTransactionByIndex(
+        entry.transactionEntries[0].index - 1
+      )
+
+      // We should *always* have a previous transaction here.
+      if (prevTransactionEntry === null) {
+        throw new MissingElementError('SequencerBatchAppendedTransaction')
+      }
+    }
+
     await db.putTransactionEntries(entry.transactionEntries)
 
     // Add an additional field to the enqueued transactions in the database
@@ -219,6 +233,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         )
       }
     }
+
+    await db.putTransactionBatchEntries([entry.transactionBatchEntry])
   },
 }
 

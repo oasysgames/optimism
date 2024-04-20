@@ -1,5 +1,323 @@
 # data transport layer
 
+## 0.5.56
+
+### Patch Changes
+
+- Updated dependencies [5063a69fb]
+  - @eth-optimism/contracts@0.6.0
+
+## 0.5.55
+
+### Patch Changes
+
+- b33208a8f: Add better logging to DTL about shutoff block
+- dbe5eb308: Empty patch release to re-release packages that failed to be released by a bug in the release process.
+
+## 0.5.54
+
+### Patch Changes
+
+- Updated dependencies [fecd42d67]
+  - @eth-optimism/common-ts@0.8.1
+
+## 0.5.53
+
+### Patch Changes
+
+- Updated dependencies [0e179781b]
+- Updated dependencies [4ae94b412]
+  - @eth-optimism/common-ts@0.8.0
+
+## 0.5.52
+
+### Patch Changes
+
+- Updated dependencies [f04e5db2d]
+  - @eth-optimism/common-ts@0.7.1
+
+## 0.5.51
+
+### Patch Changes
+
+- 4396e187d: Fixes a bug in the DTL that would cause it to not be able to sync beyond the deposit shutoff block.
+
+## 0.5.50
+
+### Patch Changes
+
+- 9b2891852: Refactors BaseServiceV2 slightly, merges standard options with regular options
+- Updated dependencies [e23f60f63]
+- Updated dependencies [ab8ec365c]
+- Updated dependencies [9b2891852]
+- Updated dependencies [d1f9098f9]
+- Updated dependencies [c6c9c7dbf]
+- Updated dependencies [ffcee1013]
+- Updated dependencies [eceb0de1d]
+  - @eth-optimism/common-ts@0.7.0
+  - @eth-optimism/contracts@0.5.40
+
+## 0.5.49
+
+### Patch Changes
+
+- 1d3c749a2: Bumps the version of ts-node used
+- 7c90d5a48: Patch for fast Goerli sync
+- 902985f2c: Add L1 sync shutoff block
+- 21ee72b3a: Give users a nicer revert when connected to wrong RPC
+- 36bd8fbff: Updates the DTL in preparation for shutoff during the Bedrock migration. So long, DTL!
+- e941ee73f: Fixes a bug with the DTL shutoff block logic
+- Updated dependencies [1d3c749a2]
+- Updated dependencies [c975c9620]
+- Updated dependencies [1d3c749a2]
+- Updated dependencies [136ea1785]
+  - @eth-optimism/contracts@0.5.39
+  - @eth-optimism/core-utils@0.12.0
+  - @eth-optimism/common-ts@0.6.8
+
+## 0.5.48
+
+### Patch Changes
+
+- Updated dependencies [1e76cdb86]
+  - @eth-optimism/core-utils@0.11.0
+  - @eth-optimism/common-ts@0.6.7
+  - @eth-optimism/contracts@0.5.38
+
+## 0.5.47
+
+### Patch Changes
+
+- 81c1cd99: Adds consistency checks for transaction entries in L1 syncing nodes
+- Updated dependencies [ce7da914]
+- Updated dependencies [628affc7]
+- Updated dependencies [740e1bcc]
+  - @eth-optimism/common-ts@0.6.6
+  - @eth-optimism/contracts@0.5.37
+
+## 0.5.46
+
+### Patch Changes
+
+- cf3fcf41: Optimization for mainnet under the assumption that addresses do not change.
+
+## 0.5.45
+
+### Patch Changes
+
+- 7215f4ce: Bump ethers to 5.7.0 globally
+- b1cec1d5: Fixes a bug that would break DTL sync when addresses are changed
+- Updated dependencies [7215f4ce]
+- Updated dependencies [206f6033]
+- Updated dependencies [d7679ca4]
+  - @eth-optimism/common-ts@0.6.5
+  - @eth-optimism/contracts@0.5.36
+  - @eth-optimism/core-utils@0.10.1
+
+## 0.5.44
+
+### Patch Changes
+
+- Updated dependencies [334a3eb0]
+  - @eth-optimism/contracts@0.5.35
+
+## 0.5.43
+
+### Patch Changes
+
+- Updated dependencies [dbfea116]
+- Updated dependencies [299157e7]
+  - @eth-optimism/core-utils@0.10.0
+  - @eth-optimism/contracts@0.5.34
+  - @eth-optimism/common-ts@0.6.4
+
+## 0.5.42
+
+### Patch Changes
+
+- Updated dependencies [0c2719f8]
+- Updated dependencies [a1a73e64]
+  - @eth-optimism/contracts@0.5.33
+
+## 0.5.41
+
+### Patch Changes
+
+- Updated dependencies [0df744f6]
+- Updated dependencies [8ae39154]
+- Updated dependencies [dac4a9f0]
+  - @eth-optimism/core-utils@0.9.3
+  - @eth-optimism/common-ts@0.6.3
+  - @eth-optimism/contracts@0.5.32
+
+## 0.5.40
+
+### Patch Changes
+
+- Updated dependencies [0bf3b9b4]
+- Updated dependencies [8d26459b]
+- Updated dependencies [4477fe9f]
+- Updated dependencies [1de4f48e]
+  - @eth-optimism/core-utils@0.9.2
+  - @eth-optimism/contracts@0.5.31
+  - @eth-optimism/common-ts@0.6.2
+
+## 0.5.39
+
+### Patch Changes
+
+- 6e3449ba: Upgrade import path for new typechain
+- Updated dependencies [6e3449ba]
+- Updated dependencies [f9fee446]
+  - @eth-optimism/contracts@0.5.30
+  - @eth-optimism/core-utils@0.9.1
+  - @eth-optimism/common-ts@0.6.1
+
+## 0.5.38
+
+### Patch Changes
+
+- Updated dependencies [700dcbb0]
+- Updated dependencies [3d1cb720]
+  - @eth-optimism/core-utils@0.9.0
+  - @eth-optimism/common-ts@0.6.0
+  - @eth-optimism/contracts@0.5.29
+
+## 0.5.37
+
+### Patch Changes
+
+- Updated dependencies [cb71fcde]
+- Updated dependencies [10e41522]
+  - @eth-optimism/common-ts@0.5.0
+
+## 0.5.36
+
+### Patch Changes
+
+- 29ff7462: Revert es target back to 2017
+- Updated dependencies [27234f68]
+- Updated dependencies [c201f3f1]
+- Updated dependencies [29ff7462]
+- Updated dependencies [52b26878]
+  - @eth-optimism/contracts@0.5.28
+  - @eth-optimism/common-ts@0.4.0
+  - @eth-optimism/core-utils@0.8.7
+
+## 0.5.35
+
+### Patch Changes
+
+- Updated dependencies [9ba869a7]
+- Updated dependencies [050859fd]
+  - @eth-optimism/common-ts@0.3.1
+
+## 0.5.34
+
+### Patch Changes
+
+- Updated dependencies [d9e39931]
+- Updated dependencies [84a8934c]
+  - @eth-optimism/common-ts@0.3.0
+
+## 0.5.33
+
+### Patch Changes
+
+- Updated dependencies [7c5ac36f]
+- Updated dependencies [3d4d988c]
+- Updated dependencies [9ecbf3e5]
+  - @eth-optimism/contracts@0.5.27
+  - @eth-optimism/common-ts@0.2.10
+
+## 0.5.32
+
+### Patch Changes
+
+- Updated dependencies [17962ca9]
+  - @eth-optimism/core-utils@0.8.6
+  - @eth-optimism/common-ts@0.2.9
+  - @eth-optimism/contracts@0.5.26
+
+## 0.5.31
+
+### Patch Changes
+
+- 553180e9: Fix race condition
+- d18ae135: Updates all ethers versions in response to BN.js bug
+- Updated dependencies [f16383f2]
+- Updated dependencies [d18ae135]
+  - @eth-optimism/common-ts@0.2.8
+  - @eth-optimism/contracts@0.5.25
+  - @eth-optimism/core-utils@0.8.5
+
+## 0.5.30
+
+### Patch Changes
+
+- Updated dependencies [b7a04acf]
+  - @eth-optimism/contracts@0.5.24
+
+## 0.5.29
+
+### Patch Changes
+
+- 412688d5: Replace calls to getNetwork() with getChainId util
+- Updated dependencies [412688d5]
+  - @eth-optimism/contracts@0.5.23
+
+## 0.5.28
+
+### Patch Changes
+
+- Updated dependencies [51adb389]
+- Updated dependencies [5cb3a5f7]
+- Updated dependencies [6b9fc055]
+  - @eth-optimism/contracts@0.5.22
+  - @eth-optimism/core-utils@0.8.4
+  - @eth-optimism/common-ts@0.2.7
+
+## 0.5.27
+
+### Patch Changes
+
+- e12e8976: Use Basic Authentication in L1TransportServer
+
+## 0.5.26
+
+### Patch Changes
+
+- Updated dependencies [5818decb]
+  - @eth-optimism/contracts@0.5.21
+
+## 0.5.25
+
+### Patch Changes
+
+- b57014d1: Update to typescript@4.6.2
+- Updated dependencies [d040a8d9]
+- Updated dependencies [b57014d1]
+  - @eth-optimism/contracts@0.5.20
+  - @eth-optimism/common-ts@0.2.6
+  - @eth-optimism/core-utils@0.8.3
+
+## 0.5.24
+
+### Patch Changes
+
+- 3e5b2092: Patch for Kovan DTL halting issue
+- 05894239: Add new metrics to the data-transport-layer
+- c1957126: Update Dockerfile to use Alpine
+- d9a51154: Bump to hardhat@2.9.1
+- Updated dependencies [e36b085c]
+- Updated dependencies [c1957126]
+- Updated dependencies [51673b90]
+- Updated dependencies [7a179003]
+- Updated dependencies [d9a51154]
+  - @eth-optimism/common-ts@0.2.5
+  - @eth-optimism/contracts@0.5.19
+  - @eth-optimism/core-utils@0.8.2
+
 ## 0.5.23
 
 ### Patch Changes

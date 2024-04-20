@@ -1,5 +1,5 @@
 /* Imports: External */
-import { BaseService, Logger, Metrics } from '@eth-optimism/common-ts'
+import { BaseService, Logger, LegacyMetrics } from '@eth-optimism/common-ts'
 import express, { Request, Response } from 'express'
 import promBundle from 'express-prom-bundle'
 import cors from 'cors'
@@ -27,7 +27,7 @@ import { L1DataTransportServiceOptions } from '../main/service'
 export interface L1TransportServerOptions
   extends L1DataTransportServiceOptions {
   db: LevelUp
-  metrics: Metrics
+  metrics: LegacyMetrics
 }
 
 const optionSettings = {
@@ -93,12 +93,22 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     this.state.l1RpcProvider =
       typeof this.options.l1RpcProvider === 'string'
-        ? new JsonRpcProvider(this.options.l1RpcProvider)
+        ? new JsonRpcProvider({
+            url: this.options.l1RpcProvider,
+            user: this.options.l1RpcProviderUser,
+            password: this.options.l1RpcProviderPassword,
+            headers: { 'User-Agent': 'data-transport-layer' },
+          })
         : this.options.l1RpcProvider
 
     this.state.l2RpcProvider =
       typeof this.options.l2RpcProvider === 'string'
-        ? new JsonRpcProvider(this.options.l2RpcProvider)
+        ? new JsonRpcProvider({
+            url: this.options.l2RpcProvider,
+            user: this.options.l2RpcProviderUser,
+            password: this.options.l2RpcProviderPassword,
+            headers: { 'User-Agent': 'data-transport-layer' },
+          })
         : this.options.l2RpcProvider
 
     this._initializeApp()
