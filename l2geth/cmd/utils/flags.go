@@ -61,7 +61,6 @@ import (
 	"github.com/ethereum-optimism/optimism/l2geth/p2p/netutil"
 	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/pub"
 	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	whisper "github.com/ethereum-optimism/optimism/l2geth/whisper/whisperv6"
 	pcsclite "github.com/gballet/go-libpcsclite"
@@ -522,7 +521,13 @@ var (
 	}
 	RPCGlobalGasCap = cli.Uint64Flag{
 		Name:  "rpc.gascap",
+		Value: eth.DefaultConfig.RPCGasCap.Uint64(),
 		Usage: "Sets a cap on gas that can be used in eth_call/estimateGas",
+	}
+	RPCGlobalEVMTimeoutFlag = &cli.DurationFlag{
+		Name:  "rpc.evmtimeout",
+		Usage: "Sets a timeout used for eth_call (0=infinite)",
+		Value: eth.DefaultConfig.RPCEVMTimeout,
 	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
@@ -837,7 +842,7 @@ var (
 	}
 	RollupBackendFlag = cli.StringFlag{
 		Name:   "rollup.backend",
-		Usage:  "Sync backend for verifiers (\"l1\", \"l2\" or \"queue\"), defaults to l1",
+		Usage:  "Sync backend for verifiers (\"l1\" or \"l2\"), defaults to l1",
 		Value:  "l1",
 		EnvVar: "ROLLUP_BACKEND",
 	}
@@ -867,55 +872,16 @@ var (
 		Usage:  "Allow txs with fees above the current fee up to this amount, must be > 1",
 		EnvVar: "ROLLUP_FEE_THRESHOLD_UP",
 	}
+	RollupGenesisTimeoutSecondsFlag = cli.DurationFlag{
+		Name:   "rollup.genesistimeoutseconds",
+		Usage:  "Timeout for the genesis file to be fetched",
+		Value:  time.Second * 60,
+		EnvVar: "ROLLUP_GENESIS_TIMEOUT_SECONDS",
+	}
 	SequencerClientHttpFlag = cli.StringFlag{
 		Name:   "sequencer.clienthttp",
 		Usage:  "HTTP endpoint for the sequencer client",
 		EnvVar: "SEQUENCER_CLIENT_HTTP",
-	}
-	TxPublisherEnableFlag = cli.BoolFlag{
-		Name:   "txpublisher.enable",
-		Usage:  "Enable transaction logging to PubSub",
-		EnvVar: "TX_PUBLISHER_ENABLE",
-	}
-	TxPublisherProjectIDFlag = cli.StringFlag{
-		Name:   "txpublisher.projectid",
-		Usage:  "GCP project ID for the tx PubSub",
-		EnvVar: "TX_PUBLISHER_PROJECT_ID",
-	}
-	TxPublisherTopicIDFlag = cli.StringFlag{
-		Name:   "txpublisher.topicid",
-		Usage:  "Topic ID used for PubSub",
-		EnvVar: "TX_PUBLISHER_TOPIC_ID",
-	}
-	TxPublisherTimeoutFlag = cli.DurationFlag{
-		Name:   "txpublisher.timeout",
-		Usage:  "Transaction publishing timeout",
-		EnvVar: "TX_PUBLISHER_TIMEOUT",
-	}
-	TxQueueEnableFlag = cli.BoolFlag{
-		Name:   "txqueue.enable",
-		Usage:  "Enable transaction syncing from the Backend Queue",
-		EnvVar: "TX_QUEUE_ENABLE",
-	}
-	TxQueueProjectIDFlag = cli.StringFlag{
-		Name:   "txqueue.projectid",
-		Usage:  "Backend Queue project ID",
-		EnvVar: "TX_QUEUE_PROJECT_ID",
-	}
-	TxQueueSubscriptionIDFlag = cli.StringFlag{
-		Name:   "txqueue.subscriptionid",
-		Usage:  "Transaction Queue subscription ID",
-		EnvVar: "TX_QUEUE_SUBSCRIPTION_ID",
-	}
-	TxQueueMaxOutstandingMessagesFlag = cli.IntFlag{
-		Name:   "txqueue.maxoutstandingmessages",
-		Usage:  "Max number of messages buffered in the transaction queue subscriber",
-		EnvVar: "TX_QUEUE_MAX_OUTSTANDING_MESSAGES",
-	}
-	TxQueueMaxOutstandingBytesFlag = cli.IntFlag{
-		Name:   "txqueue.maxoutstandingbytes",
-		Usage:  "Max outstanding bytes bufferered in the transaction queue subscriber",
-		EnvVar: "TX_QUEUE_MAX_OUTSTANDING_BYTES",
 	}
 )
 
@@ -1195,43 +1161,6 @@ func setRollup(ctx *cli.Context, cfg *rollup.Config) {
 	}
 	if ctx.GlobalIsSet(SequencerClientHttpFlag.Name) {
 		cfg.SequencerClientHttp = ctx.GlobalString(SequencerClientHttpFlag.Name)
-	}
-}
-
-// UsingOVM
-// setTxPublisher configures the transaction logger
-func setTxPublisher(ctx *cli.Context, cfg *pub.Config) {
-	if ctx.GlobalIsSet(TxPublisherEnableFlag.Name) {
-		cfg.Enable = ctx.GlobalBool(TxPublisherEnableFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxPublisherProjectIDFlag.Name) {
-		cfg.ProjectID = ctx.GlobalString(TxPublisherProjectIDFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxPublisherTopicIDFlag.Name) {
-		cfg.TopicID = ctx.GlobalString(TxPublisherTopicIDFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxPublisherTimeoutFlag.Name) {
-		cfg.Timeout = ctx.GlobalDuration(TxPublisherTimeoutFlag.Name)
-	}
-}
-
-// UsingOVM
-// setTxQueueSubscriber configures the Queue Backend
-func setTxQueueSubscriber(ctx *cli.Context, cfg *rollup.QueueSubscriberConfig) {
-	if ctx.GlobalIsSet(TxQueueEnableFlag.Name) {
-		cfg.Enable = ctx.GlobalBool(TxQueueEnableFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxQueueProjectIDFlag.Name) {
-		cfg.ProjectID = ctx.GlobalString(TxQueueProjectIDFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxQueueSubscriptionIDFlag.Name) {
-		cfg.SubscriptionID = ctx.GlobalString(TxQueueSubscriptionIDFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxQueueMaxOutstandingMessagesFlag.Name) {
-		cfg.MaxOutstandingMessages = ctx.GlobalInt(TxQueueMaxOutstandingMessagesFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxQueueMaxOutstandingBytesFlag.Name) {
-		cfg.MaxOutstandingBytes = ctx.GlobalInt(TxQueueMaxOutstandingBytesFlag.Name)
 	}
 }
 
@@ -1700,8 +1629,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setLes(ctx, cfg)
 	setEth1(ctx, &cfg.Rollup)
 	setRollup(ctx, &cfg.Rollup)
-	setTxPublisher(ctx, &cfg.TxPublisher)
-	setTxQueueSubscriber(ctx, &cfg.TxQueueSubscriber)
 	loadContractUpdateConfig(ctx)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
@@ -1750,6 +1677,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
 		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+	}
+	if ctx.GlobalIsSet(RPCGlobalEVMTimeoutFlag.Name) {
+		cfg.RPCEVMTimeout = ctx.Duration(RPCGlobalEVMTimeoutFlag.Name)
 	}
 
 	// Override any default configs for hard coded networks.

@@ -1,5 +1,122 @@
 # Changelog
 
+## 0.5.33
+
+### Patch Changes
+
+- 33acb7c6a: Has l2geth return a NonceToHigh response if the txn nonce is greater than the expected nonce.
+
+## 0.5.32
+
+### Patch Changes
+
+- ea817097b: Use default cas gap of 25 million
+
+## 0.5.31
+
+### Patch Changes
+
+- ccbca22c3: Patch release for additional instrumentation for the Bedrock upgrade.
+
+## 0.5.30
+
+### Patch Changes
+
+- 0e8652c29: Close down the syncservice more cleanly
+
+## 0.5.29
+
+### Patch Changes
+
+- 4e65ceb9d: Dedupe dumper addresses in memory
+
+## 0.5.28
+
+### Patch Changes
+
+- ac0f14f5: Fix state dumper
+- 5005da9a: Fixes a small l2geth bug when trying to dump state
+
+## 0.5.27
+
+### Patch Changes
+
+- 596c974e: Kick the build
+
+## 0.5.26
+
+### Patch Changes
+
+- 397b27ee: Add data exporter
+
+## 0.5.25
+
+### Patch Changes
+
+- 89f1abfa: add --rpc.evmtimeout flag to configure timeout for eth_call
+
+## 0.5.24
+
+### Patch Changes
+
+- c3e66e57: Add the gas estimation block tag to `eth_estimateGas` to be RPC compliant
+
+## 0.5.23
+
+### Patch Changes
+
+- c3363225: fix NPE in debug_standardTraceBlockToFile
+
+## 0.5.22
+
+### Patch Changes
+
+- ff0723aa: Have L2Geth Verifier sync in parallel with the DTL.
+
+## 0.5.21
+
+### Patch Changes
+
+- 248f73c5: Rerelease the previous version
+
+## 0.5.20
+
+### Patch Changes
+
+- 359bc604: Patch for L1 syncing nodes that got stuck after DTL batch sync errors
+
+## 0.5.19
+
+### Patch Changes
+
+- 1bcee8f1: Fix `eth_getBlockRange`
+- c799535d: Add system addresses for nightly goerli
+
+## 0.5.18
+
+### Patch Changes
+
+- 935a98e6: rollup: fix log.Crit usage
+- 81f09f16: l2geth: Record rollup transaction metrics
+
+## 0.5.17
+
+### Patch Changes
+
+- 13524da4: Style fix in the sync service
+- 160f4c3d: Update docker image to use golang 1.18.0
+- 1a28ba5f: Skip account cmd tests
+- 45582fcc: Skip unused tests in l2geth
+- 0c4d4e08: l2geth: Revert transaction pubsub feature
+
+## 0.5.16
+
+### Patch Changes
+
+- a01a2eb1: Skip TestWSAttachWelcome
+- 23ad6068: Skip some geth console tests that flake in CI
+- 6926b293: Adds a flag for changing the genesis fetch timeout
+
 ## 0.5.15
 
 ### Patch Changes

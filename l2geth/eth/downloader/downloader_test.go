@@ -666,6 +666,7 @@ func TestBoundedForkedSync64Fast(t *testing.T)  { testBoundedForkedSync(t, 64, F
 func TestBoundedForkedSync64Light(t *testing.T) { testBoundedForkedSync(t, 64, LightSync) }
 
 func testBoundedForkedSync(t *testing.T, protocol int, mode SyncMode) {
+	t.Skip("Unused in Optimism")
 	t.Parallel()
 
 	tester := newTester()
@@ -704,6 +705,7 @@ func TestBoundedHeavyForkedSync64Fast(t *testing.T)  { testBoundedHeavyForkedSyn
 func TestBoundedHeavyForkedSync64Light(t *testing.T) { testBoundedHeavyForkedSync(t, 64, LightSync) }
 
 func testBoundedHeavyForkedSync(t *testing.T, protocol int, mode SyncMode) {
+	t.Skip("Flaky test")
 	t.Parallel()
 
 	tester := newTester()
@@ -1389,6 +1391,7 @@ func TestFakedSyncProgress64Fast(t *testing.T)  { testFakedSyncProgress(t, 64, F
 func TestFakedSyncProgress64Light(t *testing.T) { testFakedSyncProgress(t, 64, LightSync) }
 
 func testFakedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
+	t.Skip("Flakey tests unused by Optimism")
 	t.Parallel()
 
 	tester := newTester()

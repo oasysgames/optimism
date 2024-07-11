@@ -57,8 +57,9 @@ import (
 )
 
 var (
-	errNoSequencerURL = errors.New("sequencer transaction forwarding not configured")
-	errStillSyncing   = errors.New("sequencer still syncing, cannot accept transactions")
+	errNoSequencerURL  = errors.New("sequencer transaction forwarding not configured")
+	errStillSyncing    = errors.New("sequencer still syncing, cannot accept transactions")
+	errBlockNotIndexed = errors.New("block in range not indexed, this should never happen")
 
 	acl *accessControl
 )
@@ -671,10 +672,10 @@ func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.H
 }
 
 // GetBlockByNumber returns the requested canonical block.
-// * When blockNr is -1 the chain head is returned.
-// * When blockNr is -2 the pending chain head is returned.
-// * When fullTx is true all transactions in the block are returned, otherwise
-//   only the transaction hash is returned.
+//   - When blockNr is -1 the chain head is returned.
+//   - When blockNr is -2 the pending chain head is returned.
+//   - When fullTx is true all transactions in the block are returned, otherwise
+//     only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
@@ -793,8 +794,11 @@ func (s *PublicBlockChainAPI) GetBlockRange(ctx context.Context, startNumber rpc
 	// For each block in range, get block and append to array.
 	for number := startNumber; number <= endNumber; number++ {
 		block, err := s.GetBlockByNumber(ctx, number, fullTx)
-		if block == nil || err != nil {
+		if err != nil {
 			return nil, err
+		}
+		if block == nil {
+			return nil, errBlockNotIndexed
 		}
 		blocks = append(blocks, block)
 	}
@@ -972,7 +976,7 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNrOr
 	if overrides != nil {
 		accounts = *overrides
 	}
-	result, _, failed, err := DoCall(ctx, s.b, args, blockNrOrHash, accounts, &vm.Config{}, 5*time.Second, s.b.RPCGasCap())
+	result, _, failed, err := DoCall(ctx, s.b, args, blockNrOrHash, accounts, &vm.Config{}, s.b.RPCEVMTimeout(), s.b.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -1071,9 +1075,12 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
 // given transaction against the current pending block. This is modified to
 // encode the fee in wei as gas price is always 1
-func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (hexutil.Uint64, error) {
-	blockNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	return DoEstimateGas(ctx, s.b, args, blockNrOrHash, s.b.RPCGasCap())
+func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs, blockNrOrHash *rpc.BlockNumberOrHash) (hexutil.Uint64, error) {
+	bNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
+	if blockNrOrHash != nil {
+		bNrOrHash = *blockNrOrHash
+	}
+	return DoEstimateGas(ctx, s.b, args, bNrOrHash, s.b.RPCGasCap())
 }
 
 // ExecutionResult groups all structured logs emitted by the EVM
